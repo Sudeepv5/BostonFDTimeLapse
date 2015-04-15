@@ -20,7 +20,11 @@
 {
 	text-align: center;
 }
-#anchor
+#anchor-low
+{
+	width: 900px;
+}
+#anchor-high
 {
 	width: 900px;
 }

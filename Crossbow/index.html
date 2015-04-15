@@ -1,10 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
 
+</body>
+</html>
 <html>
 <head>
 	<title>CrossBow</title>
 	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.js'></script>
 	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.css' rel='stylesheet' />
 	<link rel="stylesheet" type="text/css" href="style/smooth.css"/>
+	<link rel="stylesheet" type="text/css" href="style/rangestyle.css"/>
 	<link href='https://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
 </head>
 
@@ -16,9 +25,9 @@
 
 <script>
 L.mapbox.accessToken = 'pk.eyJ1Ijoic3VkZWVwdjUiLCJhIjoiSFAxUk1ITSJ9.2rBStsEu8yfu4zGt-ifGxg';
-var map = L.mapbox.map('map', 'sudeepv5.lo0f02dp').setView([42.33,-71.08],11);
+var map = L.mapbox.map('map', 'sudeepv5.lo0f02dp').setView([42.33,-71.08],12);
 
-
+/*
 L.marker([42.33, -71.08], {
 	icon: L.mapbox.marker.icon({
 		'marker-size': 'small',
@@ -29,64 +38,104 @@ L.marker([42.29, -71.08], {
 	icon: L.mapbox.marker.icon({
 		'marker-size': 'small',
 		'marker-color': '#FFA366',
-	})}).addTo(map).bindPopup('Hello!');
+	})}).addTo(map).bindPopup('Hello!');*/
 
-function drawMarkers(){
-	var xmlHttp=new XMLHttpRequest();
-	
-	
-	xmlHttp.onreadystatechange=function(){
-		if(xmlHttp.readyState==2)
-		{
-			var arr=JSON.parse(xmlHttp.responseText);
-			var op="";
-			for(var i=0;i<arr.length;i++)
-			{
-				op+=arr[i].display;
-			}
-			console.log("after for");
-			document.getElementById("test").innerHTML=op;
+var places=[];
+var markers=[];
+var months=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+var drawMarkers=function(){
+	var low=document.getElementById("anchor-low").value;
+	var high=document.getElementById("anchor-high").value;
+	var lyear=2006+Math.floor(low/120);
+	var lmonth=1+(low/10)%12;
+	var hyear=2006+Math.floor(high/120);
+	var hmonth=1+(high/10)%12;
+	for(var j=0;j<markers.length;j++)
+	{
+		map.removeLayer(markers[j]);
+	}
+	markers=[];
+	for(var i=0;i<places.length;i++)
+	{
+		var rest=places[i];
+		var licYear=rest.licenseadddttm.substring(0,4);
+		var licMonth=rest.licenseadddttm.substring(5,7);
+		if(isBetween(lyear,lmonth,licYear, licMonth,hyear,hmonth)){
+		var pin=L.marker([rest.location.latitude, rest.location.longitude], {
+		icon: L.mapbox.marker.icon({
+			'marker-size': 'small',
+			'marker-color': '#FFA366',
+		})})
+		pin.bindPopup(getDetails(rest));
+		map.addLayer(pin);
+		markers.push(pin);
 		}
 	}
-	xmlHttp.open("GET","test.txt",true);
-	xmlHttp.send();
+	document.getElementById("places-info").innerHTML=markers.length+" restaurants were issued license in between "+
+													 months[lmonth]+", "+lyear+" and "+months[hmonth]+", "+hyear;
+};
+
+//Returns true iff middle date(y2,m3) is in between (y1,m1), (y3,m3)
+/*
+console.log(isBetween(2006,01,2006,01,2006,01));
+console.log(isBetween(2006,01,2007,01,2006,01));
+console.log(isBetween(2006,01,2006,02,2006,01));
+console.log(isBetween(2006,01,2008,02,2010,01));
+console.log(isBetween(2014,01,2012,02,2010,01));*/
+
+function isBetween(y1,m1,y2,m2,y3,m3)
+{
+	return (isGreater(y2,m2,y1,m1) && isGreater(y3,m3,y2,m2)) || (isGreater(y2,m2,y3,m3) && isGreater(y1,m1,y2,m2));
 }
-/*function drawMarkers(){
-var xmlhttp = new XMLHttpRequest();
-var url = "myTutorials.txt";
 
-xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-        var myArr = JSON.parse(xmlhttp.responseText);
-        myFunction(myArr);
-    }
+
+//Returns true iff (y1,m1) is greater than or equal to (y3,m3)
+function isGreater(y1,m1,y2,m2)
+{
+	if(y1>y2)
+		return true;
+	else if(y1==y2)
+		return (m1>=m2);
+	else
+		return false;
 }
-xmlhttp.open("GET", url, true);
-xmlhttp.send();
+
+function getDetails(place)
+{
+	return "<b>Name : </b>"+place.businessname+
+	"<br> <b>License Type : </b>"+place.licensecat+
+	"<br> <b>License Issue Date : </b>"+place.licenseadddttm+
+	"<br> <b>License Status : </b>"+place.licstatus+
+	"<br> <b>Takeout : </b>"+((place.descript=="Eating & Drinking w/ Take Out")?"Yes":"No")+
+	"<br> <b>Phone : </b>"+place.dayphn+
+	"<br> <b>Address : </b>"+place.address+"<br>"+place.city+"<br>"+place.state+" - "+place.zip;
 }
 
-function myFunction(arr) {
-    var out = "";
-    var i;
-    for(i = 0; i < arr.length; i++) {
-        out += '<a href="' + arr[i].url + '">' + 
-        arr[i].display + '</a><br>';
-    }
-    document.getElementById("test").innerHTML = out;
-}*/
 
-
-
-
+function drawTest(){
+	var xlr=new XMLHttpRequest();
+	xlr.open("GET","https://data.cityofboston.gov/resource/gb6y-34cq.json",true);
+	xlr.send();
+	xlr.onreadystatechange=function(){
+	if(xlr.readyState==4 && xlr.status==200)
+	{
+		places=JSON.parse(xlr.responseText);
+	}	
+	}
+}
 
 </script>
 
 <div id="anchor-div">
-2006<input type="range" id="anchor">2014
+2006<input type="range" id="anchor-low" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015<br>
+2006<input type="range" id="anchor-high" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015
 <div>
 
+<div id="places-info">
+</div>
+
 <div id="test">This is temporary</div>
-<button type="button" onclick="drawMarkers()">Do it Already!</button>
+<button type="button" onclick="drawTest()">Do it Already!</button>
 
 </body>
 </html>
