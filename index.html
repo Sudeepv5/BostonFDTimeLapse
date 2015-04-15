@@ -1,0 +1,92 @@
+
+<html>
+<head>
+	<title>CrossBow</title>
+	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.js'></script>
+	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.css' rel='stylesheet' />
+	<link rel="stylesheet" type="text/css" href="style/smooth.css"/>
+	<link href='https://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+
+<h2 class="heading">BOSTON | Food and Drink | TIME LAPSE</h2>
+
+<div id="map"></div>
+
+<script>
+L.mapbox.accessToken = 'pk.eyJ1Ijoic3VkZWVwdjUiLCJhIjoiSFAxUk1ITSJ9.2rBStsEu8yfu4zGt-ifGxg';
+var map = L.mapbox.map('map', 'sudeepv5.lo0f02dp').setView([42.33,-71.08],11);
+
+
+L.marker([42.33, -71.08], {
+	icon: L.mapbox.marker.icon({
+		'marker-size': 'small',
+		'marker-color': '#FFA366',
+	})}).addTo(map).bindPopup('Hello!');
+
+L.marker([42.29, -71.08], {
+	icon: L.mapbox.marker.icon({
+		'marker-size': 'small',
+		'marker-color': '#FFA366',
+	})}).addTo(map).bindPopup('Hello!');
+
+function drawMarkers(){
+	var xmlHttp=new XMLHttpRequest();
+	
+	
+	xmlHttp.onreadystatechange=function(){
+		if(xmlHttp.readyState==2)
+		{
+			var arr=JSON.parse(xmlHttp.responseText);
+			var op="";
+			for(var i=0;i<arr.length;i++)
+			{
+				op+=arr[i].display;
+			}
+			console.log("after for");
+			document.getElementById("test").innerHTML=op;
+		}
+	}
+	xmlHttp.open("GET","test.txt",true);
+	xmlHttp.send();
+}
+/*function drawMarkers(){
+var xmlhttp = new XMLHttpRequest();
+var url = "myTutorials.txt";
+
+xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        var myArr = JSON.parse(xmlhttp.responseText);
+        myFunction(myArr);
+    }
+}
+xmlhttp.open("GET", url, true);
+xmlhttp.send();
+}
+
+function myFunction(arr) {
+    var out = "";
+    var i;
+    for(i = 0; i < arr.length; i++) {
+        out += '<a href="' + arr[i].url + '">' + 
+        arr[i].display + '</a><br>';
+    }
+    document.getElementById("test").innerHTML = out;
+}*/
+
+
+
+
+
+</script>
+
+<div id="anchor-div">
+2006<input type="range" id="anchor">2014
+<div>
+
+<div id="test">This is temporary</div>
+<button type="button" onclick="drawMarkers()">Do it Already!</button>
+
+</body>
+</html>
