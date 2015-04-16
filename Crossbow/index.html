@@ -1,23 +1,16 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title></title>
-</head>
-<body>
 
-</body>
-</html>
 <html>
 <head>
-	<title>CrossBow</title>
+	<title>Time Lapse</title>
 	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.js'></script>
 	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.css' rel='stylesheet' />
 	<link rel="stylesheet" type="text/css" href="style/smooth.css"/>
-	<link rel="stylesheet" type="text/css" href="style/rangestyle.css"/>
 	<link href='https://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
 </head>
 
-<body>
+<body onload="importData()">
 
 <h2 class="heading">BOSTON | Food and Drink | TIME LAPSE</h2>
 
@@ -27,23 +20,14 @@
 L.mapbox.accessToken = 'pk.eyJ1Ijoic3VkZWVwdjUiLCJhIjoiSFAxUk1ITSJ9.2rBStsEu8yfu4zGt-ifGxg';
 var map = L.mapbox.map('map', 'sudeepv5.lo0f02dp').setView([42.33,-71.08],12);
 
-/*
-L.marker([42.33, -71.08], {
-	icon: L.mapbox.marker.icon({
-		'marker-size': 'small',
-		'marker-color': '#FFA366',
-	})}).addTo(map).bindPopup('Hello!');
-
-L.marker([42.29, -71.08], {
-	icon: L.mapbox.marker.icon({
-		'marker-size': 'small',
-		'marker-color': '#FFA366',
-	})}).addTo(map).bindPopup('Hello!');*/
-
 var places=[];
 var markers=[];
 var months=["","January","February","March","April","May","June","July","August","September","October","November","December"];
-var drawMarkers=function(){
+
+// Called when either of the slider is moved, 
+// Brings in blimps for the restaurants in range and binds data to them.
+function drawMarkers()
+{
 	var low=document.getElementById("anchor-low").value;
 	var high=document.getElementById("anchor-high").value;
 	var lyear=2006+Math.floor(low/120);
@@ -64,16 +48,17 @@ var drawMarkers=function(){
 		var pin=L.marker([rest.location.latitude, rest.location.longitude], {
 		icon: L.mapbox.marker.icon({
 			'marker-size': 'small',
-			'marker-color': '#FFA366',
+			'marker-color': '#FF7519',
+			'marker-style': 'restaurant'
 		})})
 		pin.bindPopup(getDetails(rest));
 		map.addLayer(pin);
 		markers.push(pin);
 		}
 	}
-	document.getElementById("places-info").innerHTML=markers.length+" restaurants were issued license in between "+
+	document.getElementById("places-info").innerHTML=markers.length+" restaurants were issued licenses between "+
 													 months[lmonth]+", "+lyear+" and "+months[hmonth]+", "+hyear;
-};
+}
 
 //Returns true iff middle date(y2,m3) is in between (y1,m1), (y3,m3)
 /*
@@ -100,6 +85,7 @@ function isGreater(y1,m1,y2,m2)
 		return false;
 }
 
+//Returns the details as HTML string to each pin on map
 function getDetails(place)
 {
 	return "<b>Name : </b>"+place.businessname+
@@ -111,8 +97,8 @@ function getDetails(place)
 	"<br> <b>Address : </b>"+place.address+"<br>"+place.city+"<br>"+place.state+" - "+place.zip;
 }
 
-
-function drawTest(){
+//Called on page load, retrives the details of food places from cityofboston.gov
+function importData(){
 	var xlr=new XMLHttpRequest();
 	xlr.open("GET","https://data.cityofboston.gov/resource/gb6y-34cq.json",true);
 	xlr.send();
@@ -125,7 +111,7 @@ function drawTest(){
 }
 
 </script>
-
+<br>
 <div id="anchor-div">
 2006<input type="range" id="anchor-low" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015<br>
 2006<input type="range" id="anchor-high" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015
@@ -133,9 +119,8 @@ function drawTest(){
 
 <div id="places-info">
 </div>
-
-<div id="test">This is temporary</div>
-<button type="button" onclick="drawTest()">Do it Already!</button>
-
+<br>
+<div class="tip">Tip 1 : Move the sliders to view the licensed restaurants on the map!<br>
+				 Tip 2 : Click on blimps to see details of that respective restaurant!</div>
 </body>
 </html>
