@@ -6,11 +6,12 @@
 	<title>Time Lapse</title>
 	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.js'></script>
 	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.8/mapbox.css' rel='stylesheet' />
+	<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
 	<link rel="stylesheet" type="text/css" href="style/smooth.css"/>
-	<link href='https://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
 </head>
 
-<body onload="importData()">
+<body>
 
 <h2 class="heading">BOSTON | Food and Drink | TIME LAPSE</h2>
 
@@ -21,44 +22,89 @@ L.mapbox.accessToken = 'pk.eyJ1Ijoic3VkZWVwdjUiLCJhIjoiSFAxUk1ITSJ9.2rBStsEu8yfu
 var map = L.mapbox.map('map', 'sudeepv5.lo0f02dp').setView([42.33,-71.08],12);
 
 var places=[];
-var markers=[];
+var licenseMap={};
+var markers=new L.FeatureGroup();
 var months=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+
+
 
 // Called when either of the slider is moved, 
 // Brings in blimps for the restaurants in range and binds data to them.
 function drawMarkers()
 {
+	var restMarkers=0;
+	var barMarkers=0;
 	var low=document.getElementById("anchor-low").value;
 	var high=document.getElementById("anchor-high").value;
 	var lyear=2006+Math.floor(low/120);
 	var lmonth=1+(low/10)%12;
 	var hyear=2006+Math.floor(high/120);
-	var hmonth=1+(high/10)%12;
-	for(var j=0;j<markers.length;j++)
-	{
-		map.removeLayer(markers[j]);
-	}
-	markers=[];
+	var hmonth=1+(high/10)%12;	
+	map.removeLayer(markers);
+	markers.clearLayers();
 	for(var i=0;i<places.length;i++)
 	{
 		var rest=places[i];
 		var licYear=rest.licenseadddttm.substring(0,4);
 		var licMonth=rest.licenseadddttm.substring(5,7);
-		if(isBetween(lyear,lmonth,licYear, licMonth,hyear,hmonth)){
-		var pin=L.marker([rest.location.latitude, rest.location.longitude], {
-		icon: L.mapbox.marker.icon({
-			'marker-size': 'small',
-			'marker-color': '#FF7519',
-			'marker-style': 'restaurant'
-		})})
-		pin.bindPopup(getDetails(rest));
-		map.addLayer(pin);
-		markers.push(pin);
+		var lng=rest.location.longitude;
+		var lat=rest.location.latitude;
+		if(isBetween(lyear,lmonth,licYear, licMonth,hyear,hmonth) && (lng!=0.0 || lat!=0.0)){
+			var liquor=liqLicense(rest);
+			var pin;
+			if(liquor)
+			{
+				pin=L.marker([lat, lng], {
+				icon: L.mapbox.marker.icon({
+				'marker-size': 'small',
+				'marker-color': '#E32311',
+				'marker-symbol': 'circle'
+				})});
+				barMarkers++;				
+			}
+			else
+			{
+				pin=L.marker([lat, lng], {
+				icon: L.mapbox.marker.icon({
+				'marker-size': 'small',
+				'marker-color': '#427B1D',
+				'marker-symbol': 'circle'
+				})});
+				restMarkers++;
+			}
+			pin.bindPopup(getDetails(rest,liquor));
+			markers.addLayer(pin);
 		}
 	}
-	document.getElementById("places-info").innerHTML=markers.length+" restaurants were issued licenses between "+
-													 months[lmonth]+", "+lyear+" and "+months[hmonth]+", "+hyear;
+	map.addLayer(markers)
+	document.getElementById("interval").innerHTML="Between "+months[lmonth]+", "+lyear+" and "+months[hmonth]+", "+hyear;
+	document.getElementById("rest").innerHTML=(restMarkers + barMarkers);
+	document.getElementById("liq").innerHTML=barMarkers;
+	
 }
+
+
+//If exists returns the liquor license details for the given restaurant. Returns null otherwise
+function liqLicense(rest)
+{
+	if(rest.address && rest.zip)
+	{
+	var streetno=rest.address.split(" ")[0];
+	var streetname=rest.address.split(" ")[1];
+	var zipcode=rest.zip;
+	var data=licenseMap[streetno+""+zipcode];
+	if(data){
+	for(var i=0;i<data.length;i++)
+	{
+		if(data[i].address.indexOf(" "+streetname+" ")!=-1)
+			return data[i];
+	}
+	}
+	}
+	return null;
+}
+
+
 
 //Returns true iff middle date(y2,m3) is in between (y1,m1), (y3,m3)
 /*
@@ -85,42 +131,146 @@ function isGreater(y1,m1,y2,m2)
 		return false;
 }
 
-//Returns the details as HTML string to each pin on map
-function getDetails(place)
+//Returns the food and drink details as HTML string
+function getDetails(place, bar)
 {
-	return "<b>Name : </b>"+place.businessname+
-	"<br> <b>License Type : </b>"+place.licensecat+
-	"<br> <b>License Issue Date : </b>"+place.licenseadddttm+
-	"<br> <b>License Status : </b>"+place.licstatus+
-	"<br> <b>Takeout : </b>"+((place.descript=="Eating & Drinking w/ Take Out")?"Yes":"No")+
-	"<br> <b>Phone : </b>"+place.dayphn+
-	"<br> <b>Address : </b>"+place.address+"<br>"+place.city+"<br>"+place.state+" - "+place.zip;
+	var details="<b>Name : </b>"+place.businessname+
+				//"<br> <b>License Type : </b>"+place.licensecat+
+				"<br> <b>Food License Issue Date : </b>"+place.licenseadddttm+
+				//"<br> <b>License Status : </b>"+place.licstatus+
+				"<br> <b>Takeout : </b>"+((place.descript=="Eating & Drinking w/ Take Out")?"Yes":"No")+
+				"<br> <b>Phone : </b>"+place.dayphn+
+				"<br> <b>Address : </b>"+place.address+"<br>&emsp;&emsp;&emsp;&emsp;&emsp;"+place.city+", "+place.state+" - "+place.zip+
+				"<br> <b>Liquor License Details </b>";
+	if(bar)
+	{
+		details+="<br> <b>Liquor License : </b> Yes"+
+		"<br> <b>License No : </b>"+bar.licenseno+
+		"<br> <b>License Issue date : </b>"+bar.issdttm+
+		"<br> <b>License Category : </b>"+bar.liccat+
+		"<br> <b>License Category Desc: </b>"+bar.liccatdesc+
+		"<br> <b>License Status : </b>"+bar.licstatus;
+	}
+	else
+		details+="<br> <b>Liquor License : </b> No";
+	return details;
 }
 
-//Called on page load, retrives the details of food places from cityofboston.gov
-function importData(){
+//Called on page load, retrieves the details of food places from cityofboston.gov
+function importFoodData(){
 	var xlr=new XMLHttpRequest();
-	xlr.open("GET","https://data.cityofboston.gov/resource/gb6y-34cq.json",true);
+	xlr.open("GET","https://data.cityofboston.gov/resource/gb6y-34cq.json?$limit=3000",true);
 	xlr.send();
 	xlr.onreadystatechange=function(){
 	if(xlr.readyState==4 && xlr.status==200)
 	{
 		places=JSON.parse(xlr.responseText);
+		correctLocations();
 	}	
+	};
+}
+
+//Checks all the records in restaurants and corrects the location values
+function correctLocations()
+{
+	for(var i=0;i<places.length;i++)
+	{
+		if(places[i].location.longitude==0.0 || places[i].location.latitude==0.0)
+		{
+		var address = places[i].address+", "+places[i].city+", "+places[i].zip;
+		var data = addLatLong(address,i);
+		}
 	}
 }
+
+//Gets the location from Google geocode with the given address
+function addLatLong(address,index)
+{
+	var geocoder = new google.maps.Geocoder();
+	geocoder.geocode( { 'address': address}, function(results, status) {
+  	if (status == google.maps.GeocoderStatus.OK)
+  	{
+    	var data= [results[0].geometry.location.lat(), results[0].geometry.location.lng()];
+    	setLocationValues(data,index);
+	}
+	});
+}
+
+//Sets the actual location values 
+function setLocationValues(data,index)
+{
+	if(data)
+	{
+		places[index].location.latitude=data[0];
+		places[index].location.longitude=data[1];
+	}
+}
+
+//Called on page load, retrieves the details of liquor licenses from cityofboston.gov and builds
+//a Map with street number and zipcode as keys and rest of the details as values
+function importDrinkData()
+{
+	var xlr=new XMLHttpRequest();
+	var licenseArray=[];
+	xlr.open("GET","https://data.cityofboston.gov/resource/hda6-fnsh.json?$limit=1500",true);
+	xlr.send();
+	xlr.onreadystatechange=function(){
+	if(xlr.readyState==4 && xlr.status==200)
+	{
+		licenseArray=JSON.parse(xlr.responseText);
+		buildMap(licenseArray);
+	}
+	};
+}
+
+//Builds a Map from all the license data with street number and zipcode as keys and rest of the details as values
+function buildMap(licenseArray){
+
+	for(var i=0;i<licenseArray.length;i++)
+	{
+		if(licenseArray[i].stno && licenseArray[i].zip)
+		{
+			var key=licenseArray[i].stno.trim()+""+licenseArray[i].zip.trim();
+			var data=[];
+			if(licenseMap[key])
+			{
+				data=licenseMap[key];
+				data.push(licenseArray[i]);
+				licenseMap[key]=data;
+			}
+			else
+			{
+				data[0]=licenseArray[i];
+				licenseMap[key]=data;
+			}
+		}
+	}
+}
+
+//Page onload
+window.onload = function () { 
+	importFoodData();
+	importDrinkData();
+  }
+
 
 </script>
 <br>
 <div id="anchor-div">
 2006<input type="range" id="anchor-low" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015<br>
 2006<input type="range" id="anchor-high" value="0" min="0" max="1080" step="10" oninput="drawMarkers()">2015
-<div>
-
-<div id="places-info">
 </div>
+
+
+<table class="info">
+<tr><td>Interval. </td><td><div id="interval">Between January, 2006 and January, 2006</div></td></tr>
+<tr><td>All Restaurants. </td><td><div id="rest" style="color:#427B1D">0</div></td></tr>
+<tr><td>Restaurants with Liquor License. </td><td><div id="liq" style="color:#E32311">0</div></td></tr>
+</table>
+
+
 <br>
-<div class="tip">Tip 1 : Move the sliders to view the licensed restaurants on the map!<br>
-				 Tip 2 : Click on blimps to see details of that respective restaurant!</div>
+<div class="tip">Tip 1. Move the sliders to view the licensed restaurants on the map!<br>
+				 Tip 2. Click on blimps to see details of that respective restaurant!</div>
 </body>
 </html>
